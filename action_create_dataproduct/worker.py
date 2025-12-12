@@ -5,20 +5,23 @@ import time
 logger = logging.getLogger(__name__)
 
 
-def run_worker():
+def run_worker(stop_event: threading.Event):
     logger.info("Worker started, keeping process alive...")
     
     try:
-        while True:
-            time.sleep(1)
+        while not stop_event.is_set():
+            stop_event.wait(timeout=1)
     except KeyboardInterrupt:
         logger.info("Received keyboard interrupt, shutting down")
+    finally:
+        logger.info("Worker stopped")
 
 
 def start_worker_thread():
-    thread = threading.Thread(target=run_worker, daemon=True)
+    stop_event = threading.Event()
+    thread = threading.Thread(target=run_worker, args=(stop_event,), daemon=False)
     thread.start()
-    return thread
+    return thread, stop_event
 
 
 if __name__ == "__main__":
@@ -26,4 +29,5 @@ if __name__ == "__main__":
         level=logging.INFO,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     )
-    run_worker()
+    stop_event = threading.Event()
+    run_worker(stop_event)

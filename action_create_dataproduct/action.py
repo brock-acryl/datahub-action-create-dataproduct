@@ -56,7 +56,7 @@ class CreateDataproductAction(Action):
             raise ValueError("PipelineContext.graph is required")
         self.graph: DataHubGraph = getattr(graph, "graph", graph)
         
-        self._worker_thread = start_worker_thread()
+        self._worker_thread, self._stop_event = start_worker_thread()
 
     def act(self, event: EventEnvelope) -> None:
         envelope_raw = event.as_json() if hasattr(event, "as_json") else None
@@ -188,4 +188,8 @@ class CreateDataproductAction(Action):
         logger.info("Created/updated data product %s (%s)", dp_name or dp_id, dp_urn)
 
     def close(self) -> None:
-        pass
+        if hasattr(self, "_stop_event") and self._stop_event:
+            logger.info("Stopping worker thread...")
+            self._stop_event.set()
+        if hasattr(self, "_worker_thread") and self._worker_thread:
+            self._worker_thread.join(timeout=5)
