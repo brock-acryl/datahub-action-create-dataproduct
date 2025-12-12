@@ -1,6 +1,5 @@
 import json
 import logging
-import threading
 import uuid
 from typing import Any, Optional
 
@@ -55,43 +54,7 @@ class CreateDataproductAction(Action):
             raise ValueError("PipelineContext.graph is required")
         self.graph: DataHubGraph = getattr(graph, "graph", graph)
 
-        self._worker_shutdown = threading.Event()
-        self._worker_exc: Optional[BaseException] = None
-
-        worker_name = str(config_dict.get("worker_name", "dataproduct-worker"))
-        keep_process_alive = bool(config_dict.get("keep_process_alive", True))
-
-        self._worker_thread = threading.Thread(
-            target=self._worker_loop,
-            args=(self._worker_shutdown,),
-            daemon=not keep_process_alive,
-            name=worker_name,
-        )
-        self._worker_thread.start()
-
-    def _worker_loop(self, shutdown_event: threading.Event) -> None:
-        interval_s_raw: Any = self.config_dict.get("worker_interval_seconds", 60.0)
-        try:
-            interval_s = float(interval_s_raw)
-        except Exception:
-            interval_s = 60.0
-        interval_s = max(0.1, interval_s)
-
-        try:
-            while not shutdown_event.is_set():
-                logger.debug("Background worker heartbeat (interval_s=%s)", interval_s)
-                if shutdown_event.wait(timeout=interval_s):
-                    break
-        except BaseException as e:
-            self._worker_exc = e
-            logger.exception("Background worker crashed")
-
     def act(self, event: EventEnvelope) -> None:
-        if self._worker_exc is not None:
-            raise SystemExit("Background worker crashed") from self._worker_exc
-        if not self._worker_thread.is_alive():
-            raise SystemExit("Background worker thread died")
-
         envelope_raw = event.as_json() if hasattr(event, "as_json") else None
         if envelope_raw:
             logger.info("Incoming event: %s", envelope_raw)
@@ -221,8 +184,4 @@ class CreateDataproductAction(Action):
         logger.info("Created/updated data product %s (%s)", dp_name or dp_id, dp_urn)
 
     def close(self) -> None:
-        self._worker_shutdown.set()
-        self._worker_thread.join(timeout=10.0)
-        super().close()
-
-
+        pass

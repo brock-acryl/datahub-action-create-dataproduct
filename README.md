@@ -25,18 +25,21 @@ datahub actions -c action.yaml
 Add these under `action.config`:
 
 - **`id_prefix`** (optional): prefix for the generated data product id (e.g. `dp-`).
-- **`keep_process_alive`** (default: `true`): keep the action process alive.
-- **`worker_name`** (default: `dataproduct-worker`): thread name for the heartbeat worker.
-- **`worker_interval_seconds`** (default: `60`): heartbeat interval.
+
+To prevent the pipeline from exiting when no events arrive, set this under `source.config`:
+
+- **`kill_after_idle_timeout`** (default: `true`): set to `false` to disable the 30s idle shutdown in the DataHub events source.
 
 Example:
 
 ```yaml
+source:
+  type: "datahub-cloud"
+  config:
+    kill_after_idle_timeout: false
 action:
   type: "action-create-dataproduct"
   config:
     id_prefix: "dp-"
-    keep_process_alive: true
-    worker_interval_seconds: 60
 ```
 
