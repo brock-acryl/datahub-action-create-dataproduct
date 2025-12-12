@@ -1,0 +1,10 @@
+name: "action-create-dataproduct"
+datahub:
+  server: "https://<your-organization>.acryl.io"
+  token: "${DATAHUB_TOKEN}"
+source:
+  type: "datahub-cloud"
+action:
+  type: "action-create-dataproduct"
+  config:
+    name: "action-create-dataproduct"
