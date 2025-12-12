@@ -93,6 +93,8 @@ class CreateDataproductAction(Action):
             raise SystemExit("Background worker thread died")
 
         envelope_raw = event.as_json() if hasattr(event, "as_json") else None
+        if envelope_raw:
+            logger.info("Incoming event: %s", envelope_raw)
         if not envelope_raw:
             return
 
