@@ -11,7 +11,7 @@ from datahub.metadata.urns import DataProductUrn
 from datahub_actions.action.action import Action
 from datahub_actions.event.event_envelope import EventEnvelope
 from datahub_actions.pipeline.pipeline_context import PipelineContext
-from action_create_dataproduct.worker import run_worker
+from action_create_dataproduct.worker import start_worker_thread
 
 
 logger = logging.getLogger(__name__)
@@ -55,9 +55,10 @@ class CreateDataproductAction(Action):
         if graph is None:
             raise ValueError("PipelineContext.graph is required")
         self.graph: DataHubGraph = getattr(graph, "graph", graph)
+        
+        self._worker_thread = start_worker_thread()
 
     def act(self, event: EventEnvelope) -> None:
-        run_worker()
         envelope_raw = event.as_json() if hasattr(event, "as_json") else None
         if envelope_raw:
             logger.info("Incoming event: %s", envelope_raw)

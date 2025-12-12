@@ -1,20 +1,11 @@
-import signal
-import sys
-import time
 import logging
+import threading
+import time
 
 logger = logging.getLogger(__name__)
 
 
-def signal_handler(sig, frame):
-    logger.info("Received signal %s, shutting down gracefully", sig)
-    sys.exit(0)
-
-
 def run_worker():
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
-    
     logger.info("Worker started, keeping process alive...")
     
     try:
@@ -22,7 +13,12 @@ def run_worker():
             time.sleep(1)
     except KeyboardInterrupt:
         logger.info("Received keyboard interrupt, shutting down")
-        sys.exit(0)
+
+
+def start_worker_thread():
+    thread = threading.Thread(target=run_worker, daemon=True)
+    thread.start()
+    return thread
 
 
 if __name__ == "__main__":
