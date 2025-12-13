@@ -181,3 +181,4 @@ cython_debug/
 .cursorindexingignore
 action.yaml
 logs/
+test_action.py
