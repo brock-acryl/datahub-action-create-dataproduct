@@ -6,28 +6,35 @@ logger = logging.getLogger(__name__)
 
 
 def run_worker(stop_event: threading.Event, ctx=None):
-    logger.info("Worker started, keeping process alive...")
-    
-    last_activity_time = time.time()
+    logger.info("Worker started, keeping process alive and resetting idle timer...")
     
     try:
         while not stop_event.is_set():
-            current_time = time.time()
+            try:
+                source = getattr(ctx, "source", None) if ctx else None
+                if source:
+                    current_time = time.time()
+                    attrs_to_try = [
+                        "_last_event_time",
+                        "last_event_time", 
+                        "_last_activity_time",
+                        "last_activity_time",
+                        "_idle_start_time",
+                        "idle_start_time"
+                    ]
+                    for attr in attrs_to_try:
+                        if hasattr(source, attr):
+                            setattr(source, attr, current_time)
+                            logger.debug(f"Reset source.{attr} to prevent idle timeout")
+                    
+                    if hasattr(source, "kill_after_idle_timeout"):
+                        source.kill_after_idle_timeout = False
+                    if hasattr(source, "_kill_after_idle_timeout"):
+                        source._kill_after_idle_timeout = False
+            except Exception as e:
+                logger.debug("Could not reset source activity: %s", e)
             
-            if ctx and current_time - last_activity_time > 20:
-                try:
-                    source = getattr(ctx, "source", None)
-                    if source:
-                        if hasattr(source, "_last_event_time"):
-                            source._last_event_time = current_time
-                        if hasattr(source, "last_event_time"):
-                            source.last_event_time = current_time
-                        logger.debug("Reset source activity timer to prevent idle timeout")
-                    last_activity_time = current_time
-                except Exception as e:
-                    logger.debug("Could not reset source activity: %s", e)
-            
-            stop_event.wait(timeout=1)
+            stop_event.wait(timeout=5)
     except KeyboardInterrupt:
         logger.info("Received keyboard interrupt, shutting down")
     finally:

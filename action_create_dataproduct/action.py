@@ -188,6 +188,8 @@ class CreateDataproductAction(Action):
         logger.info("Created/updated data product %s (%s)", dp_name or dp_id, dp_urn)
 
     def close(self) -> None:
+        logger.info("close() called - but event processing has already stopped")
+        
         if hasattr(self, "_stop_event") and self._stop_event:
             logger.info("Stopping worker thread...")
             self._stop_event.set()
